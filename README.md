@@ -88,3 +88,15 @@ when available.
 Each card is 68.2 × 99 mm (credit-card landscape). Eight cards fit per A4 sheet
 (2 columns × 4 rows). The PDF is laid out for duplex long-edge printing:
 front pages are column-mirrored so that fronts and backs align after printing.
+
+---
+
+## Disclaimer
+
+This is an **unofficial, community-made tool** and is not affiliated with or
+endorsed by Info Flora. All botanical data, distribution maps, ecological
+indicators, and photos are sourced from https://www.infoflora.ch and remain
+the property of Info Flora and the respective photo authors. This project
+does not claim ownership of that content — the generated output credits each
+photo to its original author (see the `Credit` field / printed attribution on
+each card).
