@@ -65,12 +65,19 @@ running Phase 2. Skipping this step is fine but produces less curated output.
 
 ### Phase 2 — PDF generation
 ```bash
-venv/bin/python3 phase2.py output/species_output.xlsx --solo-foto
+venv/bin/python3 phase2.py output/species_output.xlsx --solo-foto --lang it
 ```
 
 Generates `species_output_stampa.pdf` — a duplex A4 PDF (front pages first,
 then back pages) ready for long-edge double-sided printing and cutting.
 `--solo-foto` restricts output to species that have a photo.
+
+`--lang` (`it` / `en` / `de` / `fr`, default `it`) sets the language for the
+card's translated text: Indigenat (origin), Lebensform (life form), and the
+flowering-month chart. Flowering months are only re-rendered in the chosen
+language for species scraped with a phase1 version that captured the raw
+start/end months (`Fioritura_Start`/`Fioritura_End` columns) — older xlsx
+files without them keep the pre-rendered chart as-is.
 
 ---
 
@@ -88,6 +95,16 @@ when available.
 Each card is 68.2 × 99 mm (credit-card landscape). Eight cards fit per A4 sheet
 (2 columns × 4 rows). The PDF is laid out for duplex long-edge printing:
 front pages are column-mirrored so that fronts and backs align after printing.
+
+### Example card
+
+Blank template preview of a single card, front and back — placeholder photo
+and generic text, no real species data (see [Disclaimer](#disclaimer) below):
+
+<p>
+  <img src="docs/example_card_front.png" alt="Example card front (photo)" width="45%">
+  <img src="docs/example_card_back.png" alt="Example card back (data)" width="45%">
+</p>
 
 ---
 

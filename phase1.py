@@ -1070,13 +1070,13 @@ def step_scrape_dati(output_xlsx):
     banner(6, "Fetching ecological data (Zeigerwerte · IUCN · Fioritura)")
     _H = {"User-Agent": "Mozilla/5.0"}
     ZW_COLS  = ["F", "R", "N", "L", "T", "K", "Lebensform"]
-    OUT_FIOR = "fioritura"
+    OUT_FIOR = os.path.join(OUTPUT_DIR, "fioritura")
 
     wb      = openpyxl.load_workbook(output_xlsx)
     ws      = wb.active
     headers = [cell.value for cell in ws[1]]
 
-    for col in ZW_COLS + ["Lista Rossa", "Fioritura"]:
+    for col in ZW_COLS + ["Lista Rossa", "Fioritura", "Fioritura_Start", "Fioritura_End"]:
         if col not in headers:
             ws.cell(row=1, column=len(headers) + 1, value=col).font = Font(bold=True)
             headers.append(col)
@@ -1131,9 +1131,13 @@ def step_scrape_dati(output_xlsx):
             start, end = result_fior
             jpg = _generate_flowering(slug, start, end, OUT_FIOR)
             row[headers.index("Fioritura")].value = jpg
+            row[headers.index("Fioritura_Start")].value = start
+            row[headers.index("Fioritura_End")].value = end
             print(f"    Fior → {start}-{end}  {jpg}")
         else:
             row[headers.index("Fioritura")].value = ""
+            row[headers.index("Fioritura_Start")].value = ""
+            row[headers.index("Fioritura_End")].value = ""
             print(f"    Fior → not found")
 
         time.sleep(0.5)

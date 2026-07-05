@@ -20,12 +20,19 @@ Duplex printing (long-edge flip):
   → front and back align perfectly
 
 Usage:
-  python3 phase2.py species_output.xlsx
+  python3 phase2.py species_output.xlsx [--solo-foto] [--lang it|en|de|fr]
+
+  --lang picks the card's text language (Indigenat, Lebensform, flowering
+  months); default is "it". Flowering months are only re-rendered in the
+  chosen language when phase1 captured the raw start/end months (columns
+  Fioritura_Start/Fioritura_End) — older xlsx files without them keep the
+  pre-rendered (English) chart.
 """
 
 import sys
 import os
 import re
+import io
 import base64
 import shutil
 import tempfile
@@ -35,6 +42,7 @@ from urllib.parse import urlparse
 import numpy as np
 import requests
 import openpyxl
+import cairosvg
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps
 from reportlab.lib.pagesizes import A4
@@ -102,10 +110,82 @@ COL_LIFEFORM = "Lebensform"
 COL_MAP    = "Map"
 COL_IUCN   = "Lista Rossa"
 COL_FLOW   = "Fioritura"
+COL_FLOW_START = "Fioritura_Start"
+COL_FLOW_END   = "Fioritura_End"
 COL_CREDIT = "Credit"
 
 IUCN_DIR = os.path.join(OUTPUT_DIR, "iucn_bars")
 ZW_DIR   = os.path.join(OUTPUT_DIR, "zeigerwerte")
+
+# ── FLOWERING CHART (re-rendered per --lang) ──────────────────────────────────
+# Same layout/style as phase1._svg_fioritura, parametrized by month labels so
+# the chart can be regenerated in the language picked with --lang.
+_FIOR_R = 16; _FIOR_GAP = 5; _FIOR_PAD = 2; _FIOR_SCALE = 3.0
+_FIOR_FONT = "Helvetica Neue, Helvetica, Arial, sans-serif"
+_FIOR_STEP = _FIOR_R * 2 + _FIOR_GAP
+_FIOR_COLS, _FIOR_ROWS = 3, 4
+_FIOR_W = _FIOR_COLS * _FIOR_STEP - _FIOR_GAP + _FIOR_PAD * 2
+_FIOR_H = round(_FIOR_W * 19 / 28.0)
+_FIOR_CELL_H = _FIOR_H / _FIOR_ROWS
+_FIOR_FONT_SZ = round(_FIOR_CELL_H * 0.36)
+
+_FIOR_CACHE_DIR = os.path.join(OUTPUT_DIR, "fioritura", "_lang")
+
+
+def _svg_fioritura_lang(start: int, end: int, months: list) -> str:
+    els = []
+    for i, name in enumerate(months):
+        m   = i + 1
+        row = (m - 1) // _FIOR_COLS
+        col = (m - 1) % _FIOR_COLS
+        cx  = _FIOR_PAD + col * _FIOR_STEP + _FIOR_R
+        cy  = row * _FIOR_CELL_H + _FIOR_CELL_H / 2 + _FIOR_FONT_SZ * 0.37
+        on  = start <= m <= end
+        els.append(
+            f'<text x="{cx}" y="{cy:.1f}" font-family="{_FIOR_FONT}" '
+            f'font-size="{_FIOR_FONT_SZ}" font-weight="{"700" if on else "300"}" '
+            f'fill="{"#000000" if on else "#BBBBBB"}" '
+            f'text-anchor="middle">{name}</text>'
+        )
+    body = "\n  ".join(els)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'width="{_FIOR_W}" height="{_FIOR_H}" viewBox="0 0 {_FIOR_W} {_FIOR_H}">\n  {body}\n</svg>\n'
+    )
+
+
+def _generate_fioritura_lang(slug: str, start: int, end: int, months: list, out_dir: str) -> str:
+    os.makedirs(out_dir, exist_ok=True)
+    jpg_path  = os.path.join(out_dir, f"{slug}.jpg")
+    png_bytes = cairosvg.svg2png(bytestring=_svg_fioritura_lang(start, end, months).encode(), scale=_FIOR_SCALE)
+    png_img   = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    bg        = Image.new("RGB", png_img.size, (255, 255, 255))
+    bg.paste(png_img, mask=png_img.split()[3])
+    bg.save(jpg_path, "JPEG", quality=95)
+    return jpg_path
+
+
+def _flowering_image_path(label: dict) -> str | None:
+    """Returns the flowering chart path, regenerated in the selected --lang
+    when the raw start/end months were captured by phase1. Falls back to the
+    pre-rendered image (baked in English) if that data isn't available.
+    """
+    try:
+        start = int(label.get(COL_FLOW_START))
+        end   = int(label.get(COL_FLOW_END))
+    except (TypeError, ValueError):
+        return label.get(COL_FLOW) or None
+
+    slug = slug_from_file(label.get("File"))
+    if not slug:
+        return label.get(COL_FLOW) or None
+
+    cache_dir  = os.path.join(_FIOR_CACHE_DIR, LANG)
+    cache_path = os.path.join(cache_dir, f"{slug}.jpg")
+    if not os.path.exists(cache_path):
+        _generate_fioritura_lang(slug, start, end, MONTHS_BY_LANG[LANG], cache_dir)
+    return cache_path
+
 
 # ── DRAWN IUCN BAR ────────────────────────────────────────────────────────────
 _IUCN_CATS = ["EX", "CR", "EN", "VU", "NT", "LC"]
@@ -193,6 +273,11 @@ _PLACEHOLDER_STATUSES = {"IMAGE_NOT_FOUND", "PAGE_NOT_FOUND", "NO_PAGE",
                          "NO_IMAGE", "IMAGE_DOWNLOAD_ERROR", "INVALID_IMAGE", "WHITE_BG"}
 
 # ── TRANSLATIONS ──────────────────────────────────────────────────────────────
+# Output language for card text (Indigenat, Lebensform, flowering months).
+# Overridden by --lang on the command line; see main().
+LANG = "it"
+LANG_CHOICES = ("it", "en", "de", "fr")
+
 ORIGIN_IT = {
     "I":   "Indigena",
     "A":   "Archeofita",
@@ -205,6 +290,47 @@ ORIGIN_IT = {
     "I/N": "Indigena / Neofita",
     "lim": "Solo zone limitrofe",
 }
+
+ORIGIN_EN = {
+    "I":   "Native",
+    "A":   "Archaeophyte",
+    "AC":  "Archaeophyte (cultivated)",
+    "ni":  "Neo-native",
+    "N":   "Neophyte",
+    "NC":  "Neophyte (cultivated)",
+    "A/N": "Archaeophyte / Neophyte",
+    "I/A": "Native / Archaeophyte",
+    "I/N": "Native / Neophyte",
+    "lim": "Border zones only",
+}
+
+ORIGIN_DE = {
+    "I":   "Einheimisch",
+    "A":   "Archäophyt",
+    "AC":  "Archäophyt (kultiviert)",
+    "ni":  "Neo-einheimisch",
+    "N":   "Neophyt",
+    "NC":  "Neophyt (kultiviert)",
+    "A/N": "Archäophyt / Neophyt",
+    "I/A": "Einheimisch / Archäophyt",
+    "I/N": "Einheimisch / Neophyt",
+    "lim": "Nur Grenzgebiete",
+}
+
+ORIGIN_FR = {
+    "I":   "Indigène",
+    "A":   "Archéophyte",
+    "AC":  "Archéophyte (cultivé)",
+    "ni":  "Néo-indigène",
+    "N":   "Néophyte",
+    "NC":  "Néophyte (cultivé)",
+    "A/N": "Archéophyte / Néophyte",
+    "I/A": "Indigène / Archéophyte",
+    "I/N": "Indigène / Néophyte",
+    "lim": "Zones limitrophes uniquement",
+}
+
+ORIGIN_BY_LANG = {"it": ORIGIN_IT, "en": ORIGIN_EN, "de": ORIGIN_DE, "fr": ORIGIN_FR}
 
 LIFEFORM_IT = {
     "p":  "fanerofita decidua",
@@ -224,6 +350,76 @@ LIFEFORM_IT = {
     "d":  "nanofanerofita-emicriptofita",
     "f":  "camefita-emicriptofita",
     "s":  "pleustofita",
+}
+
+LIFEFORM_EN = {
+    "p":  "deciduous phanerophyte",
+    "i":  "evergreen phanerophyte",
+    "n":  "deciduous nanophanerophyte",
+    "j":  "evergreen nanophanerophyte",
+    "z":  "woody chamaephyte",
+    "c":  "herbaceous chamaephyte",
+    "e":  "epiphyte",
+    "h":  "hemicryptophyte",
+    "g":  "geophyte",
+    "t":  "therophyte",
+    "u":  "therophyte / hemicryptophyte",
+    "a":  "hydrophyte",
+    "k":  "monocarpic hemicryptophyte",
+    "k*": "biennial or short-lived perennial",
+    "d":  "nanophanerophyte-hemicryptophyte",
+    "f":  "chamaephyte-hemicryptophyte",
+    "s":  "pleustophyte",
+}
+
+LIFEFORM_DE = {
+    "p":  "sommergrüner Phanerophyt",
+    "i":  "immergrüner Phanerophyt",
+    "n":  "sommergrüner Nanophanerophyt",
+    "j":  "immergrüner Nanophanerophyt",
+    "z":  "verholzter Chamaephyt",
+    "c":  "krautiger Chamaephyt",
+    "e":  "Epiphyt",
+    "h":  "Hemikryptophyt",
+    "g":  "Geophyt",
+    "t":  "Therophyt",
+    "u":  "Therophyt / Hemikryptophyt",
+    "a":  "Hydrophyt",
+    "k":  "monokarper Hemikryptophyt",
+    "k*": "zwei- oder kurzlebig mehrjährig",
+    "d":  "Nanophanerophyt-Hemikryptophyt",
+    "f":  "Chamaephyt-Hemikryptophyt",
+    "s":  "Pleustophyt",
+}
+
+LIFEFORM_FR = {
+    "p":  "phanérophyte caduc",
+    "i":  "phanérophyte sempervirent",
+    "n":  "nanophanérophyte caduc",
+    "j":  "nanophanérophyte sempervirent",
+    "z":  "chaméphyte ligneux",
+    "c":  "chaméphyte herbacé",
+    "e":  "épiphyte",
+    "h":  "hémicryptophyte",
+    "g":  "géophyte",
+    "t":  "thérophyte",
+    "u":  "thérophyte / hémicryptophyte",
+    "a":  "hydrophyte",
+    "k":  "hémicryptophyte monocarpique",
+    "k*": "bisannuelle ou vivace de courte durée",
+    "d":  "nanophanérophyte-hémicryptophyte",
+    "f":  "chaméphyte-hémicryptophyte",
+    "s":  "pleustophyte",
+}
+
+LIFEFORM_BY_LANG = {"it": LIFEFORM_IT, "en": LIFEFORM_EN, "de": LIFEFORM_DE, "fr": LIFEFORM_FR}
+
+# Flowering-chart month abbreviations, keyed the same as LANG.
+MONTHS_BY_LANG = {
+    "it": ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
+    "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "de": ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
+    "fr": ["Janv", "Févr", "Mars", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"],
 }
 
 # Known single-letter codes for splitting combined forms without a separator
@@ -249,7 +445,7 @@ def _split_lifeform(code: str) -> list[str]:
 
 
 def tr_origin(code: str) -> str:
-    return ORIGIN_IT.get((code or "").strip(), code or "")
+    return ORIGIN_BY_LANG[LANG].get((code or "").strip(), code or "")
 
 
 def tr_lifeform(code: str) -> str:
@@ -259,7 +455,7 @@ def tr_lifeform(code: str) -> str:
     # Strip 'w' prefix (casual/naturalised — does not change the life form)
     raw = code.lstrip("w") or code
     parts = _split_lifeform(raw)
-    translated = [LIFEFORM_IT.get(p, p) for p in parts]
+    translated = [LIFEFORM_BY_LANG[LANG].get(p, p) for p in parts]
     val = " / ".join(dict.fromkeys(translated))  # deduplicate preserving order
     return val[:1].upper() + val[1:] if val else val
 
@@ -513,7 +709,7 @@ def draw_label(c: canvas.Canvas, label: dict, ox: float, oy: float):
     _w_flow  = 1.5 * (_c5 - _c3)
     _ix_flow = _c3 - _w_flow / 6
     place_img(label.get(COL_MAP),  5.0,      75.0, 30.0,    19.0)
-    place_img(label.get(COL_FLOW), _ix_flow, 75.0, _w_flow, 19.0, aspect=False)
+    place_img(_flowering_image_path(label), _ix_flow, 75.0, _w_flow, 19.0, aspect=False)
 
     # ── 6. LABEL BORDER ──────────────────────────────────────────────────────
     c.setStrokeColorRGB(0.75, 0.75, 0.75)
@@ -1032,8 +1228,22 @@ def generate_combined(label_list: list, out_pdf: str):
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 
 def main():
+    global LANG
+
     args = sys.argv[1:]
     solo_foto = "--solo-foto" in args
+
+    if "--lang" in args:
+        i = args.index("--lang")
+        if i + 1 >= len(args):
+            print(f"Error: --lang requires a value ({'/'.join(LANG_CHOICES)})")
+            sys.exit(1)
+        LANG = args[i + 1].strip().lower()
+        del args[i:i + 2]
+        if LANG not in LANG_CHOICES:
+            print(f"Error: unsupported --lang '{LANG}'. Choices: {', '.join(LANG_CHOICES)}")
+            sys.exit(1)
+
     args = [a for a in args if not a.startswith("--")]
 
     if not args:
