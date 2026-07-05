@@ -96,15 +96,14 @@ Each card is 68.2 × 99 mm (credit-card landscape). Eight cards fit per A4 sheet
 (2 columns × 4 rows). The PDF is laid out for duplex long-edge printing:
 front pages are column-mirrored so that fronts and backs align after printing.
 
-### Example card
+### Output overview
 
-Blank template preview of a single card, front and back — placeholder photo
-and generic text, no real species data (see [Disclaimer](#disclaimer) below):
+Card structure (blank template, placeholder photo and generic text — no real
+species data, see [Disclaimer](#disclaimer) below) and the front/back print
+alignment: matching letters (A↔a, B↔b, …) land on the same physical card
+after duplex printing and cutting.
 
-<p>
-  <img src="docs/example_card_front.png" alt="Example card front (photo)" width="45%">
-  <img src="docs/example_card_back.png" alt="Example card back (data)" width="45%">
-</p>
+<img src="docs/output_overview.png" alt="Card structure and print alignment overview" width="700">
 
 ---
 
