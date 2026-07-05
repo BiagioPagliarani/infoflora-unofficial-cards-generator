@@ -1,0 +1,90 @@
+# Botanical Flashcard Pipeline
+
+An automated pipeline for generating print-ready, duplex botanical flashcards
+(label-style species cards) from InfoFlora (https://www.infoflora.ch) — the
+Swiss national data centre for flora.
+
+Given a list of species names, the pipeline automatically downloads photos,
+distribution maps, ecological indicator charts, and flowering calendars, then
+lays them out into a duplex-printable A4 PDF.
+
+---
+
+## Use cases
+
+The input species list can be tailored to any botanical context. For example,
+the pipeline is well suited to producing study cards for the Info Flora
+botanical certifications (https://www.infoflora.ch/en/training/certifications.html)
+
+Simply replace `species.xlsx` with a list matching the relevant species set.
+
+---
+
+## System requirements
+
+- **Python 3.11+**
+- Internet connection (scraping from infoflora.ch)
+- **macOS**: uses the system font `HelveticaNeue.ttc` automatically
+- **Linux / Windows**: `phase2.py` downloads the Inter font (free, SIL OFL
+  licence) automatically on first run, saving it to `fonts/`
+
+---
+
+## Installation
+
+```bash
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+---
+
+## Usage
+
+### Phase 1 — Scraping
+```bash
+venv/bin/python3 phase1.py species.xlsx
+```
+
+Downloads photos, maps, ecological data (Zeigerwerte), IUCN status, and
+flowering calendars for every species in the input list. Produces:
+
+- `output/species_output.xlsx` — enriched species table (input for Phase 2)
+- `output/images_ext/` — main species photos
+- `output/images_ext_candidates/` — alternative photo candidates (see below)
+- `output/maps/` — distribution maps
+- `output/zeigerwerte/` — ecological indicator charts
+- `output/fioritura/` — flowering calendars
+
+**Photo selection**: the algorithm scores and selects the best available photo
+automatically. When no single photo scores above the confidence threshold, all
+candidates are saved to `images_ext_candidates/<slug>/`. In that case, review
+each species subfolder and copy your preferred photo to `images_ext/` before
+running Phase 2. Skipping this step is fine but produces less curated output.
+
+### Phase 2 — PDF generation
+```bash
+venv/bin/python3 phase2.py output/species_output.xlsx --solo-foto
+```
+
+Generates `species_output_stampa.pdf` — a duplex A4 PDF (front pages first,
+then back pages) ready for long-edge double-sided printing and cutting.
+`--solo-foto` restricts output to species that have a photo.
+
+---
+
+## Input file
+
+`species.xlsx` must contain at minimum a column named **`Taxonname`** with the
+full scientific name of each species (e.g. `Abies alba Mill.`).
+Additional columns present in the SISF/Info Flora export are used automatically
+when available.
+
+---
+
+## Output format
+
+Each card is 68.2 × 99 mm (credit-card landscape). Eight cards fit per A4 sheet
+(2 columns × 4 rows). The PDF is laid out for duplex long-edge printing:
+front pages are column-mirrored so that fronts and backs align after printing.
