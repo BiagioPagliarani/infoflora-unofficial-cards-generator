@@ -40,6 +40,19 @@ pip install -r requirements.txt
 
 ## Usage
 
+### Input file
+
+`species.xlsx` must contain at minimum a column named **`Taxonname`** with the
+full scientific name of each species (e.g. `Abies alba Mill.`).
+Additional columns present in the SISF/Info Flora export are used automatically
+when available.
+
+The bundled `species.xlsx` is Info Flora's official Swiss vascular flora
+checklist, downloadable directly from
+https://www.infoflora.ch/en/flora/taxonomy.html#checklist. Replace it with
+your own species list (or a subset of the checklist) to target a different
+species set.
+
 ### Phase 1 — Scraping
 ```bash
 venv/bin/python3 phase1.py species.xlsx
@@ -76,21 +89,6 @@ flowering-month chart. Flowering months are only re-rendered in the chosen
 language for species scraped with a phase1 version that captured the raw
 start/end months (`Fioritura_Start`/`Fioritura_End` columns) — older xlsx
 files without them keep the pre-rendered chart as-is.
-
----
-
-## Input file
-
-`species.xlsx` must contain at minimum a column named **`Taxonname`** with the
-full scientific name of each species (e.g. `Abies alba Mill.`).
-Additional columns present in the SISF/Info Flora export are used automatically
-when available.
-
-The bundled `species.xlsx` is Info Flora's official Swiss vascular flora
-checklist, downloadable directly from
-https://www.infoflora.ch/en/flora/taxonomy.html#checklist. Replace it with
-your own species list (or a subset of the checklist) to target a different
-species set.
 
 ---
 
