@@ -1,7 +1,7 @@
 # Botanical Flashcard Pipeline
 
-An automated pipeline for generating print-ready, duplex botanical flashcards
-(label-style species cards) from InfoFlora (https://www.infoflora.ch) — the
+An automated pipeline for generating print-ready, botanical flashcards
+from InfoFlora (https://www.infoflora.ch) — the
 Swiss national data centre for flora.
 
 Given a list of species names, the pipeline automatically downloads photos,
