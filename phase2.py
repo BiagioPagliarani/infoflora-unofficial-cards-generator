@@ -815,8 +815,25 @@ def _clean_credit(credit):
     return ("© " + m.group(1).strip()) if m else credit.strip()
 
 
+# Must stay in sync with phase1._EXCLUDED_URL_PARTS / _EXCLUDED_PUBLISHERS —
+# phase1 filters the gallery before assigning the NN_ candidate indices, so
+# _fetch_gallery has to apply the same filter or the indices won't line up.
+_EXCLUDED_URL_PARTS  = ("/dessins/", "/species/anatomy/")
+_EXCLUDED_PUBLISHERS = ("Flora Vegetativa",)
+
+
+def _url_accettabile(url):
+    return not any(p in url for p in _EXCLUDED_URL_PARTS)
+
+
+def _title_acceptable(title):
+    return not any(p in title for p in _EXCLUDED_PUBLISHERS)
+
+
 def _fetch_gallery(slug):
-    """Returns a sorted list of (url, title) from the infoflora gallery, or []."""
+    """Returns a sorted list of (url, title) from the infoflora gallery, or [].
+    Must match phase1._extract_gallery_candidates's filtering exactly, since
+    phase1 assigns the NN_ candidate filename indices against that filtered list."""
     try:
         r = requests.get(
             f"https://www.infoflora.ch/en/flora/{slug}.html",
@@ -829,11 +846,13 @@ def _fetch_gallery(slug):
     soup = BeautifulSoup(r.text, "html.parser")
     seen, results = set(), []
     for a in soup.select("#info-gallery a[title]"):
+        title = a.get("title", "")
         href = a.get("href", "")
         orig = a.get("original-image") or (_extract_original_url(href) if href else "")
-        if orig and "infoflora" in orig and orig not in seen:
+        if (orig and "infoflora" in orig and orig not in seen
+                and _url_accettabile(orig) and _title_acceptable(title)):
             seen.add(orig)
-            results.append((orig, a.get("title", "")))
+            results.append((orig, title))
     return results
 
 

@@ -890,8 +890,19 @@ def _read_xlsx_species(path):
         )
     except StopIteration:
         raise ValueError("Column 'Taxonname' not found in xlsx.")
+
+    # SISF/Info Flora exports have a units/legend row right after the header,
+    # with no Taxonname value. Only skip it if it's actually empty, so a
+    # plain header+data xlsx (no legend row) doesn't lose its first species.
+    data_start = header_idx + 1
+    if data_start < len(rows):
+        next_row  = rows[data_start]
+        next_name = str(next_row[name_col]).strip() if next_row[name_col] else ""
+        if not next_name or next_name == "None":
+            data_start += 1
+
     data = {}
-    for row in rows[header_idx + 2:]:
+    for row in rows[data_start:]:
         if all(v is None for v in row):
             continue
         name = str(row[name_col]).strip() if row[name_col] else ""

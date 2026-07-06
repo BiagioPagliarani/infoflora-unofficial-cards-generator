@@ -94,6 +94,11 @@ candidates are saved to `images_ext_candidates/<slug>/`. In that case, review
 each species subfolder and copy your preferred photo to `images_ext/` before
 running Phase 2. Skipping this step is fine but produces less curated output.
 
+**Connection drops**: for large species lists, an interrupted connection
+doesn't require starting over — just re-run the same command. Phase 1 detects
+files and data already downloaded and skips them, only fetching what's still
+missing.
+
 <br>
 
 ### Phase 2 — PDF generation
