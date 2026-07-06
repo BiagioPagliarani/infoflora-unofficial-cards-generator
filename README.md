@@ -8,7 +8,11 @@ Given a list of species names, the pipeline automatically downloads photos,
 distribution maps, ecological indicator charts, and flowering calendars, then
 lays them out into a duplex-printable A4 PDF.
 
+<br>
+
 ---
+
+<br>
 
 ## Use cases
 
@@ -16,7 +20,11 @@ The input species list can be tailored to any botanical context. For example,
 the pipeline is well suited to producing study cards for the Info Flora
 botanical certifications (https://www.infoflora.ch/en/training/certifications.html)
 
+<br>
+
 ---
+
+<br>
 
 ## System requirements
 
@@ -26,7 +34,11 @@ botanical certifications (https://www.infoflora.ch/en/training/certifications.ht
 - **Linux / Windows**: `phase2.py` downloads the Inter font (free, SIL OFL
   licence) automatically on first run, saving it to `fonts/`
 
+<br>
+
 ---
+
+<br>
 
 ## Installation
 
@@ -36,9 +48,15 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+<br>
+
 ---
 
+<br>
+
 ## Usage
+
+<br>
 
 ### Input file
 
@@ -52,6 +70,8 @@ checklist, downloadable directly from
 https://www.infoflora.ch/en/flora/taxonomy.html#checklist. Replace it with
 your own species list (or a subset of the checklist) to target a different
 species set.
+
+<br>
 
 ### Phase 1 — Scraping
 ```bash
@@ -74,6 +94,8 @@ candidates are saved to `images_ext_candidates/<slug>/`. In that case, review
 each species subfolder and copy your preferred photo to `images_ext/` before
 running Phase 2. Skipping this step is fine but produces less curated output.
 
+<br>
+
 ### Phase 2 — PDF generation
 ```bash
 venv/bin/python3 phase2.py output/species_output.xlsx --solo-foto --lang it
@@ -90,13 +112,19 @@ language for species scraped with a phase1 version that captured the raw
 start/end months (`Fioritura_Start`/`Fioritura_End` columns) — older xlsx
 files without them keep the pre-rendered chart as-is.
 
+<br>
+
 ---
+
+<br>
 
 ## Output format
 
 Each card is 68.2 × 99 mm (credit-card landscape). Eight cards fit per A4 sheet
 (2 columns × 4 rows). The PDF is laid out for duplex long-edge printing:
 front pages are column-mirrored so that fronts and backs align after printing.
+
+<br>
 
 ### Output overview
 
@@ -114,6 +142,8 @@ after duplex printing and cutting.
 <br><br>
 
 ---
+
+<br>
 
 ## Disclaimer
 
