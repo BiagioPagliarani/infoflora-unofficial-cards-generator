@@ -103,7 +103,9 @@ species data, see [Disclaimer](#disclaimer) below) and the front/back print
 alignment: matching letters (A↔a, B↔b, …) land on the same physical card
 after duplex printing and cutting.
 
-<img src="docs/output_overview.png" alt="Card structure and print alignment overview" width="450">
+<p align="center">
+  <img src="docs/output_overview.png" alt="Card structure and print alignment overview" width="450">
+</p>
 
 ---
 
