@@ -16,8 +16,6 @@ The input species list can be tailored to any botanical context. For example,
 the pipeline is well suited to producing study cards for the Info Flora
 botanical certifications (https://www.infoflora.ch/en/training/certifications.html)
 
-Simply replace `species.xlsx` with a list matching the relevant species set.
-
 ---
 
 ## System requirements
@@ -88,6 +86,12 @@ full scientific name of each species (e.g. `Abies alba Mill.`).
 Additional columns present in the SISF/Info Flora export are used automatically
 when available.
 
+The bundled `species.xlsx` is Info Flora's official Swiss vascular flora
+checklist, downloadable directly from
+https://www.infoflora.ch/en/flora/taxonomy.html#checklist. Replace it with
+your own species list (or a subset of the checklist) to target a different
+species set.
+
 ---
 
 ## Output format
@@ -103,13 +107,13 @@ species data, see [Disclaimer](#disclaimer) below) and the front/back print
 alignment: matching letters (A↔a, B↔b, …) land on the same physical card
 after duplex printing and cutting.
 
-
+<br><br>
 
 <p align="center">
   <img src="docs/output_overview.png" alt="Card structure and print alignment overview" width="450">
 </p>
 
-
+<br><br>
 
 ---
 
