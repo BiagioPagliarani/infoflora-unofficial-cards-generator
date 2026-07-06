@@ -112,10 +112,7 @@ then back pages) ready for long-edge double-sided printing and cutting.
 
 `--lang` (`it` / `en` / `de` / `fr`, default `it`) sets the language for the
 card's translated text: Indigenat (origin), Lebensform (life form), and the
-flowering-month chart. Flowering months are only re-rendered in the chosen
-language for species scraped with a phase1 version that captured the raw
-start/end months (`Fioritura_Start`/`Fioritura_End` columns) — older xlsx
-files without them keep the pre-rendered chart as-is.
+flowering-month chart. 
 
 <br>
 
